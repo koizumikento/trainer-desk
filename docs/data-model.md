@@ -882,6 +882,23 @@ interface TrainingSession {
     bodyFatPercentage: number | null;
   } | null;
 
+  // セッション前後のコンディション（任意）
+  sessionCondition: {
+    // セッション前
+    energyLevel: number | null;         // エネルギーレベル（1-5）
+    sleepQuality: number | null;        // 睡眠の質（1-5）
+    muscleStiffness: string[];          // 張り・痛みがある部位
+    // セッション後
+    overallRpe: number | null;          // セッション全体のRPE（1-10）
+    satisfactionLevel: number | null;   // 満足度（1-5）
+    // アセスメント
+    posture: string | null;             // 姿勢評価メモ
+    rangeOfMotion: string | null;       // 可動域チェック
+    painAreas: string[];                // 痛みの部位
+    // 次回への引継ぎ
+    nextSessionPlan: string | null;     // 次回の計画・注意点
+  } | null;
+
   // タイムスタンプ
   createdAt: Timestamp;
   updatedAt: Timestamp;

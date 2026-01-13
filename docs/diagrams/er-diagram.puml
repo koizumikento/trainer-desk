@@ -172,6 +172,7 @@ entity "trainingSessions" as sessions {
   trainerNotes : string
   traineeNotes : string
   measurements : json?
+  sessionCondition : json?
   createdAt : timestamp
   updatedAt : timestamp
 }
