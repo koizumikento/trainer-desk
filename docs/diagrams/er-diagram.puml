@@ -11,7 +11,8 @@ entity "users" as users {
   email : string
   displayName : string
   photoURL : string?
-  userType : enum
+  roles : string[]
+  activeRole : enum
   isActive : boolean
   createdAt : timestamp
   updatedAt : timestamp

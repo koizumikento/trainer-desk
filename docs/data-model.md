@@ -54,6 +54,8 @@ firestore/
 <summary>TypeScript型定義</summary>
 
 ```typescript
+type UserRole = 'trainer' | 'trainee';
+
 interface User {
   // ドキュメントID: Firebase Auth UID
   id: string;
@@ -63,8 +65,9 @@ interface User {
   displayName: string;
   photoURL: string | null;
 
-  // ユーザー種別
-  userType: 'trainer' | 'trainee';
+  // ユーザー種別（複数選択可）
+  roles: UserRole[];                    // 持っている役割（1つ以上）
+  activeRole: UserRole;                 // 現在アクティブな役割
 
   // ステータス
   isActive: boolean;
@@ -88,7 +91,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 part 'user.freezed.dart';
 part 'user.g.dart';
 
-enum UserType {
+enum UserRole {
   @JsonValue('trainer')
   trainer,
   @JsonValue('trainee')
@@ -97,12 +100,15 @@ enum UserType {
 
 @freezed
 class AppUser with _$AppUser {
+  const AppUser._();
+
   const factory AppUser({
     required String id,
     required String email,
     required String displayName,
     String? photoURL,
-    required UserType userType,
+    required List<UserRole> roles,        // 持っている役割（複数可）
+    required UserRole activeRole,          // 現在アクティブな役割
     @Default(true) bool isActive,
     @TimestampConverter() required DateTime createdAt,
     @TimestampConverter() required DateTime updatedAt,
@@ -116,6 +122,11 @@ class AppUser with _$AppUser {
     final data = doc.data() as Map<String, dynamic>;
     return AppUser.fromJson({...data, 'id': doc.id});
   }
+
+  // 便利ゲッター
+  bool get isTrainer => roles.contains(UserRole.trainer);
+  bool get isTrainee => roles.contains(UserRole.trainee);
+  bool get hasBothRoles => isTrainer && isTrainee;
 }
 
 // Timestamp変換用コンバーター
@@ -809,16 +820,28 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // トレーナーか
+    // トレーナー権限を持っているか
     function isTrainer() {
       return isAuthenticated() &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'trainer';
+             'trainer' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles;
     }
 
-    // トレーニーか
+    // トレーニー権限を持っているか
     function isTrainee() {
       return isAuthenticated() &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'trainee';
+             'trainee' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles;
+    }
+
+    // 現在アクティブな役割がトレーナーか
+    function isActiveTrainer() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeRole == 'trainer';
+    }
+
+    // 現在アクティブな役割がトレーニーか
+    function isActiveTrainee() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeRole == 'trainee';
     }
 
     // 紐付いているか確認
