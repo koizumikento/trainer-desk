@@ -5,12 +5,13 @@
 ### 1.1 フロントエンド（モバイルアプリ）
 | 項目 | 技術 |
 |------|------|
-| フレームワーク | React Native (Expo) |
-| 言語 | TypeScript |
-| 状態管理 | Zustand |
-| ナビゲーション | React Navigation v6 |
-| UIライブラリ | React Native Paper / NativeBase |
-| フォーム管理 | React Hook Form + Zod |
+| フレームワーク | Flutter 3.x |
+| 言語 | Dart 3.x |
+| 状態管理 | Riverpod |
+| ナビゲーション | GoRouter |
+| UIライブラリ | Material 3 |
+| フォーム管理 | flutter_form_builder + form_validators |
+| アーキテクチャ | Clean Architecture + Feature-first |
 
 ### 1.2 バックエンド（Firebase）
 | 項目 | サービス |
@@ -29,15 +30,16 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Mobile App                                │
-│                    (React Native + Expo)                        │
+│                         (Flutter)                                │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐               │
-│  │   Screens   │ │   Hooks     │ │   Stores    │               │
+│  │   Screens   │ │  Providers  │ │ Repositories│               │
+│  │  (Widgets)  │ │  (Riverpod) │ │             │               │
 │  └─────────────┘ └─────────────┘ └─────────────┘               │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                      Firebase SDK                                │
+│                    FlutterFire SDK                               │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -58,14 +60,11 @@
 
 ### 3.1 Firebase Authentication
 
-```typescript
+```dart
 // 認証プロバイダー設定
-const authProviders = {
-  google: {
-    enabled: true,
-    scopes: ['email', 'profile']
-  }
-};
+class AuthConfig {
+  static const googleScopes = ['email', 'profile'];
+}
 ```
 
 ### 3.2 Firestore セキュリティルール（概要）
@@ -137,23 +136,20 @@ service firebase.storage {
 
 ### 4.2 リアルタイムリスナー
 
-```typescript
+```dart
 // チャットメッセージのリアルタイム監視
-const subscribeToMessages = (roomId: string, callback: (messages: Message[]) => void) => {
-  return firestore()
-    .collection('chatRooms')
-    .doc(roomId)
-    .collection('messages')
-    .orderBy('createdAt', 'desc')
-    .limit(50)
-    .onSnapshot(snapshot => {
-      const messages = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      callback(messages);
-    });
-};
+Stream<List<Message>> watchMessages(String roomId) {
+  return FirebaseFirestore.instance
+      .collection('chatRooms')
+      .doc(roomId)
+      .collection('messages')
+      .orderBy('createdAt', descending: true)
+      .limit(50)
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => Message.fromFirestore(doc))
+          .toList());
+}
 ```
 
 ---
@@ -161,77 +157,151 @@ const subscribeToMessages = (roomId: string, callback: (messages: Message[]) => 
 ## 5. プロジェクト構成
 
 ```
-trainer-desk/
-├── app/                          # Expo Router のページ
-│   ├── (auth)/                   # 認証関連画面
-│   │   ├── login.tsx
-│   │   └── select-role.tsx
-│   ├── (trainer)/                # トレーナー専用画面
-│   │   ├── dashboard.tsx
-│   │   ├── reservations/
-│   │   ├── clients/
-│   │   ├── training/
-│   │   └── settings.tsx
-│   ├── (trainee)/                # トレーニー専用画面
-│   │   ├── dashboard.tsx
-│   │   ├── reservations/
-│   │   ├── training/
-│   │   ├── meals/
-│   │   └── settings.tsx
-│   ├── (common)/                 # 共通画面
-│   │   ├── chat/
-│   │   └── notifications.tsx
-│   └── _layout.tsx
-├── src/
-│   ├── components/               # 共通コンポーネント
-│   │   ├── ui/                   # 基本UIコンポーネント
-│   │   ├── forms/                # フォームコンポーネント
-│   │   └── cards/                # カード系コンポーネント
-│   ├── hooks/                    # カスタムフック
-│   │   ├── useAuth.ts
-│   │   ├── useReservations.ts
-│   │   ├── useTraining.ts
-│   │   ├── useMeals.ts
-│   │   └── useChat.ts
-│   ├── stores/                   # Zustand ストア
-│   │   ├── authStore.ts
-│   │   ├── reservationStore.ts
-│   │   └── chatStore.ts
-│   ├── services/                 # Firebase サービス
-│   │   ├── firebase.ts           # Firebase 初期化
-│   │   ├── auth.ts               # 認証サービス
-│   │   ├── firestore.ts          # Firestore操作
-│   │   ├── storage.ts            # Storage操作
-│   │   └── messaging.ts          # FCM設定
-│   ├── types/                    # TypeScript 型定義
-│   │   ├── user.ts
-│   │   ├── reservation.ts
-│   │   ├── training.ts
-│   │   ├── meal.ts
-│   │   └── chat.ts
-│   ├── utils/                    # ユーティリティ関数
-│   │   ├── date.ts
-│   │   ├── validation.ts
-│   │   └── format.ts
-│   └── constants/                # 定数定義
-│       ├── config.ts
-│       └── theme.ts
-├── functions/                    # Cloud Functions
+trainer_desk/
+├── lib/
+│   ├── main.dart                     # エントリーポイント
+│   ├── app.dart                      # App Widget
+│   │
+│   ├── core/                         # コア機能
+│   │   ├── constants/                # 定数
+│   │   │   ├── app_colors.dart
+│   │   │   ├── app_text_styles.dart
+│   │   │   └── app_constants.dart
+│   │   ├── extensions/               # 拡張メソッド
+│   │   │   ├── context_extension.dart
+│   │   │   └── datetime_extension.dart
+│   │   ├── router/                   # ルーティング
+│   │   │   └── app_router.dart
+│   │   ├── theme/                    # テーマ設定
+│   │   │   └── app_theme.dart
+│   │   └── utils/                    # ユーティリティ
+│   │       ├── validators.dart
+│   │       └── formatters.dart
+│   │
+│   ├── data/                         # データ層
+│   │   ├── models/                   # データモデル
+│   │   │   ├── user_model.dart
+│   │   │   ├── reservation_model.dart
+│   │   │   ├── training_session_model.dart
+│   │   │   ├── meal_model.dart
+│   │   │   └── message_model.dart
+│   │   ├── repositories/             # リポジトリ実装
+│   │   │   ├── auth_repository.dart
+│   │   │   ├── user_repository.dart
+│   │   │   ├── reservation_repository.dart
+│   │   │   ├── training_repository.dart
+│   │   │   ├── meal_repository.dart
+│   │   │   └── chat_repository.dart
+│   │   └── services/                 # 外部サービス
+│   │       ├── firebase_service.dart
+│   │       ├── storage_service.dart
+│   │       └── notification_service.dart
+│   │
+│   ├── domain/                       # ドメイン層
+│   │   ├── entities/                 # エンティティ
+│   │   │   ├── user.dart
+│   │   │   ├── reservation.dart
+│   │   │   ├── training_session.dart
+│   │   │   ├── meal.dart
+│   │   │   └── message.dart
+│   │   └── repositories/             # リポジトリインターフェース
+│   │       ├── i_auth_repository.dart
+│   │       ├── i_user_repository.dart
+│   │       └── ...
+│   │
+│   ├── presentation/                 # プレゼンテーション層
+│   │   ├── providers/                # Riverpod Providers
+│   │   │   ├── auth_provider.dart
+│   │   │   ├── user_provider.dart
+│   │   │   ├── reservation_provider.dart
+│   │   │   ├── training_provider.dart
+│   │   │   ├── meal_provider.dart
+│   │   │   └── chat_provider.dart
+│   │   ├── widgets/                  # 共通ウィジェット
+│   │   │   ├── common/
+│   │   │   │   ├── loading_widget.dart
+│   │   │   │   ├── error_widget.dart
+│   │   │   │   └── empty_state_widget.dart
+│   │   │   ├── forms/
+│   │   │   │   └── custom_text_field.dart
+│   │   │   └── cards/
+│   │   │       ├── reservation_card.dart
+│   │   │       └── meal_card.dart
+│   │   └── screens/                  # 画面
+│   │       ├── auth/                 # 認証画面
+│   │       │   ├── login_screen.dart
+│   │       │   └── select_role_screen.dart
+│   │       ├── trainer/              # トレーナー画面
+│   │       │   ├── dashboard/
+│   │       │   │   └── trainer_dashboard_screen.dart
+│   │       │   ├── reservations/
+│   │       │   │   ├── reservation_list_screen.dart
+│   │       │   │   └── reservation_detail_screen.dart
+│   │       │   ├── clients/
+│   │       │   │   ├── client_list_screen.dart
+│   │       │   │   └── client_detail_screen.dart
+│   │       │   ├── training/
+│   │       │   │   ├── training_menu_list_screen.dart
+│   │       │   │   └── session_record_screen.dart
+│   │       │   └── settings/
+│   │       │       └── trainer_settings_screen.dart
+│   │       ├── trainee/              # トレーニー画面
+│   │       │   ├── dashboard/
+│   │       │   │   └── trainee_dashboard_screen.dart
+│   │       │   ├── reservations/
+│   │       │   │   ├── booking_screen.dart
+│   │       │   │   └── my_reservations_screen.dart
+│   │       │   ├── training/
+│   │       │   │   └── training_history_screen.dart
+│   │       │   ├── meals/
+│   │       │   │   ├── meal_record_screen.dart
+│   │       │   │   └── meal_history_screen.dart
+│   │       │   └── settings/
+│   │       │       └── trainee_settings_screen.dart
+│   │       └── common/               # 共通画面
+│   │           ├── chat/
+│   │           │   ├── chat_list_screen.dart
+│   │           │   └── chat_room_screen.dart
+│   │           └── notifications/
+│   │               └── notification_list_screen.dart
+│   │
+│   └── firebase_options.dart         # Firebase設定（自動生成）
+│
+├── functions/                        # Cloud Functions
 │   ├── src/
 │   │   ├── index.ts
 │   │   ├── auth/
+│   │   │   └── on_user_create.ts
 │   │   ├── notifications/
+│   │   │   ├── reservation_notification.ts
+│   │   │   ├── chat_notification.ts
+│   │   │   └── meal_feedback_notification.ts
 │   │   └── invitations/
+│   │       ├── generate_invite_code.ts
+│   │       └── link_trainer_trainee.ts
 │   ├── package.json
 │   └── tsconfig.json
-├── assets/                       # 画像・フォント等
-├── app.json                      # Expo設定
-├── package.json
-├── tsconfig.json
-├── firebase.json                 # Firebase設定
-├── firestore.rules               # Firestoreルール
-├── storage.rules                 # Storageルール
-└── docs/                         # ドキュメント
+│
+├── assets/                           # アセット
+│   ├── images/
+│   ├── icons/
+│   └── fonts/
+│
+├── test/                             # テスト
+│   ├── unit/
+│   ├── widget/
+│   └── integration/
+│
+├── android/                          # Android固有設定
+├── ios/                              # iOS固有設定
+│
+├── pubspec.yaml                      # パッケージ設定
+├── analysis_options.yaml             # Lint設定
+├── firebase.json                     # Firebase設定
+├── firestore.rules                   # Firestoreルール
+├── firestore.indexes.json            # Firestoreインデックス
+├── storage.rules                     # Storageルール
+└── docs/                             # ドキュメント
     ├── functional-spec.md
     ├── technical-spec.md
     └── data-model.md
@@ -239,38 +309,89 @@ trainer-desk/
 
 ---
 
-## 6. 主要ライブラリ
+## 6. 主要パッケージ
 
-### 6.1 フロントエンド依存関係
+### 6.1 pubspec.yaml
 
-```json
-{
-  "dependencies": {
-    "expo": "~50.0.0",
-    "expo-router": "~3.4.0",
-    "react": "18.2.0",
-    "react-native": "0.73.0",
-    "@react-native-firebase/app": "^18.0.0",
-    "@react-native-firebase/auth": "^18.0.0",
-    "@react-native-firebase/firestore": "^18.0.0",
-    "@react-native-firebase/storage": "^18.0.0",
-    "@react-native-firebase/messaging": "^18.0.0",
-    "@react-native-google-signin/google-signin": "^11.0.0",
-    "@react-navigation/native": "^6.1.0",
-    "zustand": "^4.5.0",
-    "react-hook-form": "^7.50.0",
-    "zod": "^3.22.0",
-    "date-fns": "^3.3.0",
-    "react-native-calendars": "^1.1300.0",
-    "react-native-image-picker": "^7.1.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.3.0",
-    "@types/react": "~18.2.0",
-    "eslint": "^8.56.0",
-    "prettier": "^3.2.0"
-  }
-}
+```yaml
+name: trainer_desk
+description: Personal trainer management app
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^2.24.0
+  firebase_auth: ^4.16.0
+  cloud_firestore: ^4.14.0
+  firebase_storage: ^11.6.0
+  firebase_messaging: ^14.7.0
+  firebase_analytics: ^10.8.0
+  firebase_crashlytics: ^3.4.0
+
+  # Google Sign In
+  google_sign_in: ^6.2.0
+
+  # State Management
+  flutter_riverpod: ^2.4.0
+  riverpod_annotation: ^2.3.0
+
+  # Navigation
+  go_router: ^13.0.0
+
+  # UI
+  flutter_hooks: ^0.20.0
+  cached_network_image: ^3.3.0
+  shimmer: ^3.0.0
+
+  # Forms
+  flutter_form_builder: ^9.2.0
+  form_builder_validators: ^9.1.0
+
+  # Date & Time
+  intl: ^0.19.0
+  table_calendar: ^3.0.9
+
+  # Image
+  image_picker: ^1.0.0
+  image_cropper: ^5.0.0
+
+  # Local Storage
+  shared_preferences: ^2.2.0
+  flutter_secure_storage: ^9.0.0
+
+  # Utilities
+  freezed_annotation: ^2.4.0
+  json_annotation: ^4.8.0
+  uuid: ^4.3.0
+  collection: ^1.18.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+  # Code Generation
+  build_runner: ^2.4.0
+  freezed: ^2.4.0
+  json_serializable: ^6.7.0
+  riverpod_generator: ^2.3.0
+
+  # Testing
+  mockito: ^5.4.0
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
 ```
 
 ### 6.2 Cloud Functions 依存関係
@@ -333,38 +454,295 @@ trainer-desk/
        │                    │                    │
 ```
 
+### 7.1 認証実装例
+
+```dart
+// lib/data/repositories/auth_repository.dart
+class AuthRepository implements IAuthRepository {
+  final FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn;
+  final FirebaseFirestore _firestore;
+
+  AuthRepository({
+    FirebaseAuth? auth,
+    GoogleSignIn? googleSignIn,
+    FirebaseFirestore? firestore,
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _googleSignIn = googleSignIn ?? GoogleSignIn(),
+        _firestore = firestore ?? FirebaseFirestore.instance;
+
+  @override
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
+
+  @override
+  Future<UserCredential> signInWithGoogle() async {
+    final googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      throw AuthException('Google sign in cancelled');
+    }
+
+    final googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    return await _auth.signInWithCredential(credential);
+  }
+
+  @override
+  Future<void> signOut() async {
+    await Future.wait([
+      _auth.signOut(),
+      _googleSignIn.signOut(),
+    ]);
+  }
+}
+```
+
 ---
 
-## 8. プッシュ通知設計
+## 8. 状態管理（Riverpod）
 
-### 8.1 通知トピック
+### 8.1 Provider 構成
+
+```dart
+// lib/presentation/providers/auth_provider.dart
+@riverpod
+class Auth extends _$Auth {
+  @override
+  Stream<User?> build() {
+    return ref.watch(authRepositoryProvider).authStateChanges;
+  }
+
+  Future<void> signInWithGoogle() async {
+    await ref.read(authRepositoryProvider).signInWithGoogle();
+  }
+
+  Future<void> signOut() async {
+    await ref.read(authRepositoryProvider).signOut();
+  }
+}
+
+// lib/presentation/providers/user_provider.dart
+@riverpod
+Future<AppUser?> currentUser(CurrentUserRef ref) async {
+  final authUser = ref.watch(authProvider).value;
+  if (authUser == null) return null;
+
+  return ref.watch(userRepositoryProvider).getUser(authUser.uid);
+}
+```
+
+### 8.2 AsyncValue パターン
+
+```dart
+// 画面でのデータ表示
+class ReservationListScreen extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reservationsAsync = ref.watch(reservationsProvider);
+
+    return reservationsAsync.when(
+      data: (reservations) => ListView.builder(
+        itemCount: reservations.length,
+        itemBuilder: (context, index) => ReservationCard(
+          reservation: reservations[index],
+        ),
+      ),
+      loading: () => const LoadingWidget(),
+      error: (error, stack) => ErrorWidget(message: error.toString()),
+    );
+  }
+}
+```
+
+---
+
+## 9. ルーティング（GoRouter）
+
+```dart
+// lib/core/router/app_router.dart
+final routerProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
+
+  return GoRouter(
+    initialLocation: '/login',
+    redirect: (context, state) {
+      final isLoggedIn = authState.value != null;
+      final isLoginRoute = state.matchedLocation == '/login';
+      final isSelectRoleRoute = state.matchedLocation == '/select-role';
+
+      if (!isLoggedIn && !isLoginRoute) {
+        return '/login';
+      }
+
+      if (isLoggedIn && isLoginRoute) {
+        final user = ref.read(currentUserProvider).value;
+        if (user == null || user.userType == null) {
+          return '/select-role';
+        }
+        return user.userType == UserType.trainer
+            ? '/trainer/dashboard'
+            : '/trainee/dashboard';
+      }
+
+      return null;
+    },
+    routes: [
+      // 認証
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/select-role',
+        builder: (context, state) => const SelectRoleScreen(),
+      ),
+
+      // トレーナー
+      ShellRoute(
+        builder: (context, state, child) => TrainerShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/trainer/dashboard',
+            builder: (context, state) => const TrainerDashboardScreen(),
+          ),
+          GoRoute(
+            path: '/trainer/reservations',
+            builder: (context, state) => const ReservationListScreen(),
+          ),
+          GoRoute(
+            path: '/trainer/clients',
+            builder: (context, state) => const ClientListScreen(),
+          ),
+          GoRoute(
+            path: '/trainer/clients/:id',
+            builder: (context, state) => ClientDetailScreen(
+              clientId: state.pathParameters['id']!,
+            ),
+          ),
+          // ... その他のルート
+        ],
+      ),
+
+      // トレーニー
+      ShellRoute(
+        builder: (context, state, child) => TraineeShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/trainee/dashboard',
+            builder: (context, state) => const TraineeDashboardScreen(),
+          ),
+          GoRoute(
+            path: '/trainee/reservations',
+            builder: (context, state) => const MyReservationsScreen(),
+          ),
+          GoRoute(
+            path: '/trainee/meals',
+            builder: (context, state) => const MealHistoryScreen(),
+          ),
+          // ... その他のルート
+        ],
+      ),
+
+      // 共通
+      GoRoute(
+        path: '/chat',
+        builder: (context, state) => const ChatListScreen(),
+      ),
+      GoRoute(
+        path: '/chat/:roomId',
+        builder: (context, state) => ChatRoomScreen(
+          roomId: state.pathParameters['roomId']!,
+        ),
+      ),
+    ],
+  );
+});
+```
+
+---
+
+## 10. プッシュ通知設計
+
+### 10.1 通知トピック
 
 | トピック | 対象 | 説明 |
 |----------|------|------|
 | `user_{userId}` | 個人 | ユーザー個別通知 |
 | `trainer_{trainerId}_clients` | グループ | トレーナーの全クライアント |
 
-### 8.2 通知ペイロード構造
+### 10.2 通知ペイロード構造
 
-```typescript
-interface NotificationPayload {
-  notification: {
-    title: string;
-    body: string;
-  };
-  data: {
-    type: 'reservation' | 'chat' | 'meal_feedback' | 'reminder';
-    targetId: string;
-    action: string;
-  };
+```dart
+class NotificationPayload {
+  final String title;
+  final String body;
+  final NotificationType type;
+  final String targetId;
+  final String action;
+
+  NotificationPayload({
+    required this.title,
+    required this.body,
+    required this.type,
+    required this.targetId,
+    required this.action,
+  });
+}
+
+enum NotificationType {
+  reservation,
+  chat,
+  mealFeedback,
+  reminder,
+}
+```
+
+### 10.3 FCM 初期化
+
+```dart
+// lib/data/services/notification_service.dart
+class NotificationService {
+  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+
+  Future<void> initialize() async {
+    // 権限リクエスト
+    await _messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // フォアグラウンド通知設定
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // トークン取得・保存
+    final token = await _messaging.getToken();
+    if (token != null) {
+      await _saveToken(token);
+    }
+
+    // トークン更新監視
+    _messaging.onTokenRefresh.listen(_saveToken);
+  }
+
+  Future<void> _saveToken(String token) async {
+    // Firestoreにトークンを保存
+  }
 }
 ```
 
 ---
 
-## 9. エラーハンドリング
+## 11. エラーハンドリング
 
-### 9.1 エラーコード
+### 11.1 エラーコード
 
 | コード | 説明 |
 |--------|------|
@@ -377,31 +755,101 @@ interface NotificationPayload {
 | `INVITE_001` | 招待コード無効 |
 | `INVITE_002` | 招待コード期限切れ |
 
-### 9.2 グローバルエラーハンドラー
+### 11.2 例外クラス
 
-```typescript
-const handleError = (error: AppError) => {
-  // エラーログ送信（Firebase Crashlytics）
-  crashlytics().recordError(error);
+```dart
+// lib/core/exceptions/app_exception.dart
+sealed class AppException implements Exception {
+  final String code;
+  final String message;
 
-  // ユーザーへの通知
-  showErrorToast(getErrorMessage(error.code));
-};
+  AppException(this.code, this.message);
+}
+
+class AuthException extends AppException {
+  AuthException(String message) : super('AUTH_001', message);
+}
+
+class DataException extends AppException {
+  DataException(String message) : super('DATA_001', message);
+}
+
+class NetworkException extends AppException {
+  NetworkException() : super('NETWORK_001', 'ネットワークエラーが発生しました');
+}
+```
+
+### 11.3 グローバルエラーハンドラー
+
+```dart
+// lib/core/utils/error_handler.dart
+class ErrorHandler {
+  static void handle(Object error, StackTrace stackTrace) {
+    // Crashlyticsにログ送信
+    FirebaseCrashlytics.instance.recordError(error, stackTrace);
+
+    // ユーザーへの通知
+    if (error is AppException) {
+      _showErrorSnackBar(error.message);
+    } else {
+      _showErrorSnackBar('予期せぬエラーが発生しました');
+    }
+  }
+
+  static void _showErrorSnackBar(String message) {
+    // SnackBar表示
+  }
+}
 ```
 
 ---
 
-## 10. テスト戦略
+## 12. テスト戦略
 
-### 10.1 テストレベル
+### 12.1 テストレベル
 
 | レベル | ツール | 対象 |
 |--------|--------|------|
-| ユニットテスト | Jest | Hooks, Utils, Stores |
-| コンポーネントテスト | React Native Testing Library | UIコンポーネント |
-| E2Eテスト | Detox | ユーザーフロー |
+| ユニットテスト | flutter_test | Repositories, Providers, Utils |
+| ウィジェットテスト | flutter_test | UIコンポーネント |
+| インテグレーションテスト | integration_test | ユーザーフロー |
 
-### 10.2 Cloud Functions テスト
+### 12.2 テスト例
+
+```dart
+// test/unit/repositories/auth_repository_test.dart
+void main() {
+  late AuthRepository authRepository;
+  late MockFirebaseAuth mockFirebaseAuth;
+  late MockGoogleSignIn mockGoogleSignIn;
+
+  setUp(() {
+    mockFirebaseAuth = MockFirebaseAuth();
+    mockGoogleSignIn = MockGoogleSignIn();
+    authRepository = AuthRepository(
+      auth: mockFirebaseAuth,
+      googleSignIn: mockGoogleSignIn,
+    );
+  });
+
+  group('signInWithGoogle', () {
+    test('should return UserCredential on success', () async {
+      // Arrange
+      when(mockGoogleSignIn.signIn()).thenAnswer(
+        (_) async => MockGoogleSignInAccount(),
+      );
+
+      // Act
+      final result = await authRepository.signInWithGoogle();
+
+      // Assert
+      expect(result, isA<UserCredential>());
+    });
+  });
+}
+```
+
+### 12.3 Cloud Functions テスト
 
 ```typescript
 // Firebase Functions テスト例
@@ -421,20 +869,39 @@ describe('onUserCreate', () => {
 
 ---
 
-## 11. デプロイメント
+## 13. デプロイメント
 
-### 11.1 環境
+### 13.1 環境
 
-| 環境 | 用途 |
-|------|------|
-| development | 開発・デバッグ |
-| staging | テスト・QA |
-| production | 本番 |
+| 環境 | 用途 | Firebase Project |
+|------|------|------------------|
+| development | 開発・デバッグ | trainer-desk-dev |
+| staging | テスト・QA | trainer-desk-stg |
+| production | 本番 | trainer-desk-prod |
 
-### 11.2 CI/CD パイプライン
+### 13.2 Flavor 設定
+
+```dart
+// lib/main_development.dart
+void main() {
+  runApp(const App(flavor: Flavor.development));
+}
+
+// lib/main_staging.dart
+void main() {
+  runApp(const App(flavor: Flavor.staging));
+}
+
+// lib/main_production.dart
+void main() {
+  runApp(const App(flavor: Flavor.production));
+}
+```
+
+### 13.3 CI/CD パイプライン
 
 ```yaml
-# GitHub Actions 例
+# .github/workflows/deploy.yml
 name: Deploy
 on:
   push:
@@ -446,23 +913,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-      - run: npm ci
-      - run: npm run build
+        with:
+          node-version: '20'
+      - run: cd functions && npm ci
+      - run: cd functions && npm run build
       - run: firebase deploy --only functions
 
-  build-app:
+  build-android:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: expo/expo-github-action@v8
-      - run: eas build --platform all --non-interactive
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+      - run: flutter pub get
+      - run: flutter build appbundle --release
+
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign
 ```
 
 ---
 
-## 12. 監視・ログ
+## 14. 監視・ログ
 
-### 12.1 Firebase サービス
+### 14.1 Firebase サービス
 
 | サービス | 用途 |
 |----------|------|
@@ -471,12 +953,35 @@ jobs:
 | Firebase Performance | パフォーマンス監視 |
 | Cloud Logging | サーバーログ |
 
-### 12.2 カスタムイベント
+### 14.2 カスタムイベント
 
-```typescript
-// 重要なユーザーアクションをトラッキング
-analytics().logEvent('reservation_created', {
-  trainer_id: trainerId,
-  date: reservationDate,
-});
+```dart
+// lib/core/utils/analytics_service.dart
+class AnalyticsService {
+  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+
+  Future<void> logReservationCreated({
+    required String trainerId,
+    required DateTime date,
+  }) async {
+    await _analytics.logEvent(
+      name: 'reservation_created',
+      parameters: {
+        'trainer_id': trainerId,
+        'date': date.toIso8601String(),
+      },
+    );
+  }
+
+  Future<void> logMealRecorded({
+    required String mealType,
+  }) async {
+    await _analytics.logEvent(
+      name: 'meal_recorded',
+      parameters: {
+        'meal_type': mealType,
+      },
+    );
+  }
+}
 ```
