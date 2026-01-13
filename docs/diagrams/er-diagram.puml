@@ -45,6 +45,22 @@ entity "traineeProfiles" as trainee_profiles {
   updatedAt : timestamp
 }
 
+entity "bodyMeasurements" as body_measurements {
+  * id : string <<PK>>
+  --
+  userId : string <<FK>>
+  weight : number?
+  height : number?
+  bodyFatPercentage : number?
+  muscleMass : number?
+  bmi : number?
+  measuredAt : timestamp
+  source : enum
+  note : string
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
 entity "trainerTraineeLinks" as links {
   * id : string <<PK>>
   --
@@ -208,6 +224,7 @@ entity "notifications" as notifications {
 ' Relationships
 users ||--o| trainer_profiles : "has"
 users ||--o| trainee_profiles : "has"
+users ||--o{ body_measurements : "records"
 users ||--o| schedules : "has"
 
 users ||--o{ links : "trainer"

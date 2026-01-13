@@ -18,6 +18,8 @@ firestore/
 │   └── {trainerId}/
 ├── traineeProfiles/              # トレーニープロフィール
 │   └── {traineeId}/
+├── bodyMeasurements/             # 体重・身長記録（時系列）
+│   └── {measurementId}/
 ├── trainerTraineeLinks/          # トレーナー・トレーニー紐付け
 │   └── {linkId}/
 ├── invitations/                  # 招待コード
@@ -249,7 +251,108 @@ interface TraineeProfile {
 
 ---
 
-### 3.4 trainerTraineeLinks（トレーナー・トレーニー紐付け）
+### 3.4 bodyMeasurements（体重・身長記録）
+
+ユーザーの体重・身長を時系列で記録。手動入力またはHealth Connect / HealthKitから自動取得。
+
+<details>
+<summary>TypeScript型定義</summary>
+
+```typescript
+type MeasurementSource = 'manual' | 'health_connect' | 'healthkit';
+
+interface BodyMeasurement {
+  // ドキュメントID: 自動生成
+  id: string;
+
+  // 対象ユーザー
+  userId: string;
+
+  // 測定データ
+  weight: number | null;              // 体重（kg）
+  height: number | null;              // 身長（cm）
+  bodyFatPercentage: number | null;   // 体脂肪率（%）
+  muscleMass: number | null;          // 筋肉量（kg）
+  bmi: number | null;                 // BMI（自動計算可）
+
+  // メタ情報
+  measuredAt: Timestamp;              // 測定日時
+  source: MeasurementSource;          // データソース
+  note: string;                       // メモ
+
+  // タイムスタンプ
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+</details>
+
+<details>
+<summary>Dart型定義（freezed）</summary>
+
+```dart
+// lib/domain/entities/body_measurement.dart
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+part 'body_measurement.freezed.dart';
+part 'body_measurement.g.dart';
+
+enum MeasurementSource {
+  @JsonValue('manual')
+  manual,
+  @JsonValue('health_connect')
+  healthConnect,
+  @JsonValue('healthkit')
+  healthkit,
+}
+
+@freezed
+class BodyMeasurement with _$BodyMeasurement {
+  const BodyMeasurement._();
+
+  const factory BodyMeasurement({
+    required String id,
+    required String userId,
+    double? weight,                    // 体重（kg）
+    double? height,                    // 身長（cm）
+    double? bodyFatPercentage,         // 体脂肪率（%）
+    double? muscleMass,                // 筋肉量（kg）
+    double? bmi,                       // BMI
+    @TimestampConverter() required DateTime measuredAt,
+    required MeasurementSource source,
+    @Default('') String note,
+    @TimestampConverter() required DateTime createdAt,
+    @TimestampConverter() required DateTime updatedAt,
+  }) = _BodyMeasurement;
+
+  factory BodyMeasurement.fromJson(Map<String, dynamic> json) =>
+      _$BodyMeasurementFromJson(json);
+
+  factory BodyMeasurement.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return BodyMeasurement.fromJson({...data, 'id': doc.id});
+  }
+
+  // BMI自動計算（height, weightがある場合）
+  double? get calculatedBmi {
+    if (weight != null && height != null && height! > 0) {
+      final heightM = height! / 100;
+      return weight! / (heightM * heightM);
+    }
+    return null;
+  }
+}
+```
+</details>
+
+**インデックス:**
+- `userId` + `measuredAt`
+- `userId` + `source` + `measuredAt`
+
+---
+
+### 3.5 trainerTraineeLinks（トレーナー・トレーニー紐付け）
 
 ```typescript
 interface TrainerTraineeLink {
@@ -272,7 +375,7 @@ interface TrainerTraineeLink {
 
 ---
 
-### 3.5 invitations（招待）
+### 3.6 invitations（招待）
 
 ```typescript
 interface Invitation {
@@ -298,7 +401,7 @@ interface Invitation {
 
 ---
 
-### 3.6 trainerSchedules（トレーナースケジュール）
+### 3.7 trainerSchedules（トレーナースケジュール）
 
 ```typescript
 interface TrainerSchedule {
@@ -335,7 +438,7 @@ type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 's
 
 ---
 
-### 3.7 exerciseMaster（エクササイズマスター）
+### 3.8 exerciseMaster（エクササイズマスター）
 
 アプリに組み込みのエクササイズ・マシンのマスターデータ。読み取り専用。
 
@@ -453,7 +556,7 @@ interface ExerciseMaster {
 
 ---
 
-### 3.8 reservations（予約）
+### 3.9 reservations（予約）
 
 <details>
 <summary>TypeScript型定義</summary>
@@ -569,7 +672,7 @@ class TimestampNullableConverter
 
 ---
 
-### 3.9 trainingMenus（トレーニングメニュー）
+### 3.10 trainingMenus（トレーニングメニュー）
 
 ```typescript
 interface TrainingMenu {
@@ -604,7 +707,7 @@ interface TrainingMenu {
 
 ---
 
-### 3.10 trainingSessions（トレーニングセッション）
+### 3.11 trainingSessions（トレーニングセッション）
 
 ```typescript
 interface TrainingSession {
@@ -651,7 +754,7 @@ interface TrainingSession {
 
 ---
 
-### 3.11 meals（食事記録）
+### 3.12 meals（食事記録）
 
 <details>
 <summary>TypeScript型定義</summary>
@@ -770,7 +873,7 @@ class Meal with _$Meal {
 
 ---
 
-### 3.12 mealFeedbacks（食事フィードバック）
+### 3.13 mealFeedbacks（食事フィードバック）
 
 ```typescript
 interface MealFeedback {
@@ -795,7 +898,7 @@ interface MealFeedback {
 
 ---
 
-### 3.13 chatRooms（チャットルーム）
+### 3.14 chatRooms（チャットルーム）
 
 ```typescript
 interface ChatRoom {
@@ -852,7 +955,7 @@ interface Message {
 
 ---
 
-### 3.14 notifications（通知）
+### 3.15 notifications（通知）
 
 ```typescript
 interface Notification {
@@ -995,6 +1098,16 @@ service cloud.firestore {
       allow read: if isOwner(traineeId) ||
                     (isTrainer() && isLinked(request.auth.uid, traineeId));
       allow write: if isOwner(traineeId) && isTrainee();
+    }
+
+    // bodyMeasurements（体重・身長記録）
+    match /bodyMeasurements/{measurementId} {
+      allow read: if isOwner(resource.data.userId) ||
+                    (isTrainer() && isLinked(request.auth.uid, resource.data.userId));
+      allow create: if isAuthenticated() &&
+                      request.resource.data.userId == request.auth.uid;
+      allow update: if isOwner(resource.data.userId);
+      allow delete: if isOwner(resource.data.userId);
     }
 
     // trainerTraineeLinks
