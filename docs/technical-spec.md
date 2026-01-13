@@ -29,106 +29,11 @@
 
 ### 2.1 全体構成図
 
-```plantuml
-@startuml system-architecture
-!theme plain
-skinparam backgroundColor #FEFEFE
-skinparam componentStyle rectangle
-
-title TrainerDesk システムアーキテクチャ
-
-package "Mobile App (Flutter)" as app {
-  package "Presentation Layer" as presentation {
-    [Screens\n(Widgets)] as screens
-    [Providers\n(Riverpod)] as providers
-  }
-
-  package "Domain Layer" as domain {
-    [Entities] as entities
-    [Repository\nInterfaces] as repo_interfaces
-  }
-
-  package "Data Layer" as data {
-    [Repositories] as repositories
-    [Models] as models
-    [Services] as services
-  }
-}
-
-package "FlutterFire SDK" as sdk {
-  [firebase_auth] as fb_auth
-  [cloud_firestore] as fb_firestore
-  [firebase_storage] as fb_storage
-  [firebase_messaging] as fb_messaging
-}
-
-cloud "Firebase Services" as firebase {
-  database "Cloud\nFirestore" as firestore
-  storage "Cloud\nStorage" as storage
-  component "Firebase\nAuth" as auth
-  component "Cloud\nFunctions" as functions
-  component "FCM" as fcm
-}
-
-screens --> providers : watch/read
-providers --> repo_interfaces : use
-repositories ..|> repo_interfaces : implements
-repositories --> models : use
-repositories --> services : use
-services --> sdk : call
-
-fb_auth --> auth
-fb_firestore --> firestore
-fb_storage --> storage
-fb_messaging --> fcm
-functions --> firestore : trigger
-functions --> fcm : send
-
-@enduml
-```
+![システムアーキテクチャ](diagrams/system-architecture.puml)
 
 ### 2.2 Clean Architecture レイヤー図
 
-```plantuml
-@startuml clean-architecture
-!theme plain
-skinparam backgroundColor #FEFEFE
-
-title Clean Architecture - 依存関係
-
-rectangle "Presentation Layer" as presentation #LightBlue {
-  rectangle "Screens (Widgets)" as screens
-  rectangle "Providers (Riverpod)" as providers
-}
-
-rectangle "Domain Layer" as domain #LightGreen {
-  rectangle "Entities" as entities
-  rectangle "Repository Interfaces" as interfaces
-  rectangle "Use Cases" as usecases
-}
-
-rectangle "Data Layer" as data #LightYellow {
-  rectangle "Repository Implementations" as repos
-  rectangle "Data Models" as models
-  rectangle "Data Sources" as sources
-}
-
-rectangle "External" as external #LightGray {
-  rectangle "Firebase SDK" as firebase
-  rectangle "Local Storage" as local
-}
-
-presentation -down-> domain : depends on
-data -up-> domain : depends on
-data -down-> external : uses
-
-note right of domain
-  ドメイン層は他の層に
-  依存しない（最内層）
-end note
-
-@enduml
-```
+![Clean Architecture](diagrams/clean-architecture.puml)
 
 ---
 

@@ -1,0 +1,55 @@
+@startuml system-architecture
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam componentStyle rectangle
+
+title TrainerDesk システムアーキテクチャ
+
+package "Mobile App (Flutter)" as app {
+  package "Presentation Layer" as presentation {
+    [Screens\n(Widgets)] as screens
+    [Providers\n(Riverpod)] as providers
+  }
+
+  package "Domain Layer" as domain {
+    [Entities] as entities
+    [Repository\nInterfaces] as repo_interfaces
+  }
+
+  package "Data Layer" as data {
+    [Repositories] as repositories
+    [Models] as models
+    [Services] as services
+  }
+}
+
+package "FlutterFire SDK" as sdk {
+  [firebase_auth] as fb_auth
+  [cloud_firestore] as fb_firestore
+  [firebase_storage] as fb_storage
+  [firebase_messaging] as fb_messaging
+}
+
+cloud "Firebase Services" as firebase {
+  database "Cloud\nFirestore" as firestore
+  storage "Cloud\nStorage" as storage
+  component "Firebase\nAuth" as auth
+  component "Cloud\nFunctions" as functions
+  component "FCM" as fcm
+}
+
+screens --> providers : watch/read
+providers --> repo_interfaces : use
+repositories ..|> repo_interfaces : implements
+repositories --> models : use
+repositories --> services : use
+services --> sdk : call
+
+fb_auth --> auth
+fb_firestore --> firestore
+fb_storage --> storage
+fb_messaging --> fcm
+functions --> firestore : trigger
+functions --> fcm : send
+
+@enduml
