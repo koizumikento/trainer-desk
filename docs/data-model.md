@@ -369,16 +369,87 @@ interface ExerciseMaster {
 
 **プリセットデータ例:**
 
-| name | category | type | gymBrands |
-|------|----------|------|-----------|
-| チェストプレス | chest | machine | chocoZAP, ANYTIME |
-| ラットプルダウン | back | machine | chocoZAP, ANYTIME |
-| レッグプレス | legs | machine | chocoZAP, ANYTIME |
-| ショルダープレス | shoulders | machine | chocoZAP |
-| アブドミナル | core | machine | chocoZAP |
-| ベンチプレス | chest | free_weight | ANYTIME |
-| スクワット | legs | free_weight | - |
-| プッシュアップ | chest | bodyweight | - |
+#### 胸（chest）
+| name | nameEn | type | gymBrands |
+|------|--------|------|-----------|
+| チェストプレス | Chest Press | machine | chocoZAP, ANYTIME |
+| ペックフライ | Pec Fly | machine | ANYTIME |
+| ベンチプレス | Bench Press | free_weight | ANYTIME |
+| ダンベルプレス | Dumbbell Press | free_weight | ANYTIME |
+| ダンベルフライ | Dumbbell Fly | free_weight | ANYTIME |
+| インクラインベンチプレス | Incline Bench Press | free_weight | ANYTIME |
+| プッシュアップ | Push Up | bodyweight | - |
+| ディップス | Dips | bodyweight | chocoZAP |
+| ケーブルクロスオーバー | Cable Crossover | cable | ANYTIME |
+
+#### 背中（back）
+| name | nameEn | type | gymBrands |
+|------|--------|------|-----------|
+| ラットプルダウン | Lat Pulldown | machine | chocoZAP, ANYTIME |
+| シーテッドロー | Seated Row | machine | ANYTIME |
+| チンニング（懸垂） | Chin Up / Pull Up | bodyweight | ANYTIME |
+| ベントオーバーロー | Bent Over Row | free_weight | ANYTIME |
+| ワンハンドロー | One Hand Row | free_weight | ANYTIME |
+| デッドリフト | Deadlift | free_weight | ANYTIME |
+| ケーブルロー | Cable Row | cable | ANYTIME |
+
+#### 脚（legs）
+| name | nameEn | type | gymBrands |
+|------|--------|------|-----------|
+| レッグプレス | Leg Press | machine | chocoZAP, ANYTIME |
+| レッグエクステンション | Leg Extension | machine | ANYTIME |
+| レッグカール | Leg Curl | machine | ANYTIME |
+| アダクション | Adduction | machine | chocoZAP |
+| アブダクション | Abduction | machine | chocoZAP |
+| ハックスクワット | Hack Squat | machine | ANYTIME |
+| スクワット | Squat | free_weight | ANYTIME |
+| ダンベルスクワット | Dumbbell Squat | free_weight | - |
+| ランジ | Lunge | bodyweight | - |
+| ブルガリアンスクワット | Bulgarian Squat | bodyweight | - |
+| カーフレイズ | Calf Raise | bodyweight | - |
+
+#### 肩（shoulders）
+| name | nameEn | type | gymBrands |
+|------|--------|------|-----------|
+| ショルダープレス | Shoulder Press | machine | chocoZAP, ANYTIME |
+| ダンベルショルダープレス | Dumbbell Shoulder Press | free_weight | ANYTIME |
+| サイドレイズ | Side Raise | free_weight | - |
+| フロントレイズ | Front Raise | free_weight | - |
+| リアレイズ | Rear Raise | free_weight | - |
+| アップライトロー | Upright Row | free_weight | ANYTIME |
+
+#### 腕（arms）
+| name | nameEn | type | gymBrands |
+|------|--------|------|-----------|
+| アームカール | Arm Curl | machine | chocoZAP |
+| ケーブルカール | Cable Curl | cable | ANYTIME |
+| ダンベルカール | Dumbbell Curl | free_weight | ANYTIME |
+| バーベルカール | Barbell Curl | free_weight | ANYTIME |
+| ハンマーカール | Hammer Curl | free_weight | - |
+| トライセプスプレスダウン | Triceps Pressdown | cable | ANYTIME |
+| トライセプスエクステンション | Triceps Extension | free_weight | ANYTIME |
+| スカルクラッシャー | Skull Crusher | free_weight | ANYTIME |
+
+#### 腹筋・体幹（core）
+| name | nameEn | type | gymBrands |
+|------|--------|------|-----------|
+| アブドミナル | Abdominal | machine | chocoZAP |
+| ケーブルクランチ | Cable Crunch | cable | ANYTIME |
+| クランチ | Crunch | bodyweight | - |
+| シットアップ | Sit Up | bodyweight | - |
+| レッグレイズ | Leg Raise | bodyweight | - |
+| プランク | Plank | bodyweight | - |
+| サイドプランク | Side Plank | bodyweight | - |
+| ロシアンツイスト | Russian Twist | bodyweight | - |
+
+#### 有酸素（cardio）
+| name | nameEn | type | gymBrands |
+|------|--------|------|-----------|
+| トレッドミル | Treadmill | cardio | chocoZAP, ANYTIME |
+| エアロバイク | Stationary Bike | cardio | chocoZAP, ANYTIME |
+| クロストレーナー | Cross Trainer | cardio | ANYTIME |
+| ローイングマシン | Rowing Machine | cardio | ANYTIME |
+| ステップマシン | Stair Climber | cardio | ANYTIME |
 
 ---
 
