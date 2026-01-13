@@ -311,7 +311,104 @@ trainer_desk/
 
 ## 6. 主要パッケージ
 
-### 6.1 pubspec.yaml
+### 6.1 パッケージ一覧と説明
+
+#### Firebase関連
+| パッケージ | バージョン | 説明 |
+|-----------|-----------|------|
+| [firebase_core](https://pub.dev/packages/firebase_core) | ^3.9.0 | Firebase初期化に必須のコアパッケージ |
+| [firebase_auth](https://pub.dev/packages/firebase_auth) | ^5.5.0 | Firebase認証（Google Sign-In等） |
+| [cloud_firestore](https://pub.dev/packages/cloud_firestore) | ^5.6.0 | Firestoreデータベース操作 |
+| [firebase_storage](https://pub.dev/packages/firebase_storage) | ^12.4.0 | Cloud Storage（画像アップロード等） |
+| [firebase_messaging](https://pub.dev/packages/firebase_messaging) | ^15.2.0 | プッシュ通知（FCM） |
+| [firebase_analytics](https://pub.dev/packages/firebase_analytics) | ^11.4.0 | ユーザー行動分析 |
+| [firebase_crashlytics](https://pub.dev/packages/firebase_crashlytics) | ^4.3.0 | クラッシュレポート |
+
+> **Note**: FlutterFireパッケージは互換性のあるバージョンを使用する必要があります。
+> [VERSIONS.md](https://github.com/firebase/flutterfire/blob/main/VERSIONS.md) で確認してください。
+
+#### 認証
+| パッケージ | バージョン | 説明 |
+|-----------|-----------|------|
+| [google_sign_in](https://pub.dev/packages/google_sign_in) | ^6.2.2 | Googleアカウントでのサインイン |
+
+#### 状態管理
+| パッケージ | バージョン | 説明 |
+|-----------|-----------|------|
+| [flutter_riverpod](https://pub.dev/packages/flutter_riverpod) | ^3.0.0 | リアクティブな状態管理フレームワーク |
+| [riverpod_annotation](https://pub.dev/packages/riverpod_annotation) | ^3.0.0 | Riverpodのアノテーション定義 |
+
+> **Riverpod 3.0の主な変更点**:
+> - StateProvider/StateNotifierProviderは`legacy.dart`に移動
+> - オフライン永続化の実験的機能追加
+> - 失敗したProviderの自動リトライ機能
+> - 詳細: [What's new in Riverpod 3.0](https://riverpod.dev/docs/whats_new)
+
+#### ナビゲーション
+| パッケージ | バージョン | 説明 |
+|-----------|-----------|------|
+| [go_router](https://pub.dev/packages/go_router) | ^14.8.0 | 宣言的ルーティング（Navigation 2ベース） |
+
+> **go_routerの特徴**:
+> - ディープリンク対応
+> - ShellRouteによる複数Navigator対応
+> - URLベースのナビゲーション
+> - Flutter公式推奨パッケージ
+
+#### UI・表示
+| パッケージ | バージョン | 説明 |
+|-----------|-----------|------|
+| [flutter_hooks](https://pub.dev/packages/flutter_hooks) | ^0.21.3 | Reactライクなフック（useState, useEffect等） |
+| [cached_network_image](https://pub.dev/packages/cached_network_image) | ^3.4.1 | 画像のキャッシュ・表示 |
+| [shimmer](https://pub.dev/packages/shimmer) | ^3.0.0 | ローディング時のシマーエフェクト |
+
+#### フォーム
+| パッケージ | バージョン | 説明 |
+|-----------|-----------|------|
+| [flutter_form_builder](https://pub.dev/packages/flutter_form_builder) | ^9.7.0 | フォーム構築の簡素化 |
+| [form_builder_validators](https://pub.dev/packages/form_builder_validators) | ^11.1.0 | フォームバリデーション |
+
+> **flutter_form_builderの主なウィジェット**:
+> - FormBuilderTextField, FormBuilderDropdown
+> - FormBuilderDateTimePicker, FormBuilderDateRangePicker
+> - FormBuilderRadioGroup, FormBuilderChoiceChips
+> - FormBuilderSlider, FormBuilderRangeSlider
+
+#### 日付・カレンダー
+| パッケージ | バージョン | 説明 |
+|-----------|-----------|------|
+| [intl](https://pub.dev/packages/intl) | ^0.20.2 | 国際化・日付フォーマット |
+| [table_calendar](https://pub.dev/packages/table_calendar) | ^3.1.3 | 高機能カレンダーウィジェット |
+
+> **table_calendarの特徴**:
+> - 単一/複数/範囲選択対応
+> - 横・縦スクロール対応
+> - イベント表示・カスタムスタイリング
+> - 多言語対応
+
+#### 画像
+| パッケージ | バージョン | 説明 |
+|-----------|-----------|------|
+| [image_picker](https://pub.dev/packages/image_picker) | ^1.1.2 | カメラ・ギャラリーから画像選択 |
+| [image_cropper](https://pub.dev/packages/image_cropper) | ^8.0.2 | 画像のトリミング |
+
+#### ローカルストレージ
+| パッケージ | バージョン | 説明 |
+|-----------|-----------|------|
+| [shared_preferences](https://pub.dev/packages/shared_preferences) | ^2.5.2 | 簡易的なキー・バリューストレージ |
+| [flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage) | ^9.2.4 | 暗号化されたセキュアストレージ |
+
+#### コード生成・ユーティリティ
+| パッケージ | バージョン | 説明 |
+|-----------|-----------|------|
+| [freezed](https://pub.dev/packages/freezed) | ^3.0.5 | イミュータブルクラス・Union型生成 |
+| [freezed_annotation](https://pub.dev/packages/freezed_annotation) | ^3.0.0 | freezedのアノテーション |
+| [json_serializable](https://pub.dev/packages/json_serializable) | ^6.9.5 | JSONシリアライズ/デシリアライズ生成 |
+| [json_annotation](https://pub.dev/packages/json_annotation) | ^4.9.0 | json_serializableのアノテーション |
+| [build_runner](https://pub.dev/packages/build_runner) | ^2.4.15 | コード生成実行 |
+| [uuid](https://pub.dev/packages/uuid) | ^4.5.1 | UUID生成 |
+
+### 6.2 pubspec.yaml
 
 ```yaml
 name: trainer_desk
@@ -319,71 +416,72 @@ description: Personal trainer management app
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.2.0 <4.0.0'
+  sdk: '>=3.6.0 <4.0.0'
+  flutter: '>=3.27.0'
 
 dependencies:
   flutter:
     sdk: flutter
 
   # Firebase
-  firebase_core: ^2.24.0
-  firebase_auth: ^4.16.0
-  cloud_firestore: ^4.14.0
-  firebase_storage: ^11.6.0
-  firebase_messaging: ^14.7.0
-  firebase_analytics: ^10.8.0
-  firebase_crashlytics: ^3.4.0
+  firebase_core: ^3.9.0
+  firebase_auth: ^5.5.0
+  cloud_firestore: ^5.6.0
+  firebase_storage: ^12.4.0
+  firebase_messaging: ^15.2.0
+  firebase_analytics: ^11.4.0
+  firebase_crashlytics: ^4.3.0
 
   # Google Sign In
-  google_sign_in: ^6.2.0
+  google_sign_in: ^6.2.2
 
   # State Management
-  flutter_riverpod: ^2.4.0
-  riverpod_annotation: ^2.3.0
+  flutter_riverpod: ^3.0.0
+  riverpod_annotation: ^3.0.0
 
   # Navigation
-  go_router: ^13.0.0
+  go_router: ^14.8.0
 
   # UI
-  flutter_hooks: ^0.20.0
-  cached_network_image: ^3.3.0
+  flutter_hooks: ^0.21.3
+  cached_network_image: ^3.4.1
   shimmer: ^3.0.0
 
   # Forms
-  flutter_form_builder: ^9.2.0
-  form_builder_validators: ^9.1.0
+  flutter_form_builder: ^9.7.0
+  form_builder_validators: ^11.1.0
 
   # Date & Time
-  intl: ^0.19.0
-  table_calendar: ^3.0.9
+  intl: ^0.20.2
+  table_calendar: ^3.1.3
 
   # Image
-  image_picker: ^1.0.0
-  image_cropper: ^5.0.0
+  image_picker: ^1.1.2
+  image_cropper: ^8.0.2
 
   # Local Storage
-  shared_preferences: ^2.2.0
-  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.5.2
+  flutter_secure_storage: ^9.2.4
 
   # Utilities
-  freezed_annotation: ^2.4.0
-  json_annotation: ^4.8.0
-  uuid: ^4.3.0
-  collection: ^1.18.0
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.9.0
+  uuid: ^4.5.1
+  collection: ^1.19.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^5.0.0
 
   # Code Generation
-  build_runner: ^2.4.0
-  freezed: ^2.4.0
-  json_serializable: ^6.7.0
-  riverpod_generator: ^2.3.0
+  build_runner: ^2.4.15
+  freezed: ^3.0.5
+  json_serializable: ^6.9.5
+  riverpod_generator: ^3.0.0
 
   # Testing
-  mockito: ^5.4.0
+  mockito: ^5.4.5
   integration_test:
     sdk: flutter
 
@@ -394,17 +492,36 @@ flutter:
     - assets/icons/
 ```
 
-### 6.2 Cloud Functions 依存関係
+### 6.3 analysis_options.yaml
+
+```yaml
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    invalid_annotation_target: ignore  # freezed + json_serializable用
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+
+linter:
+  rules:
+    prefer_single_quotes: true
+    require_trailing_commas: true
+    sort_pub_dependencies: true
+```
+
+### 6.4 Cloud Functions 依存関係
 
 ```json
 {
   "dependencies": {
-    "firebase-admin": "^12.0.0",
-    "firebase-functions": "^4.5.0"
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.3.0"
   },
   "devDependencies": {
-    "typescript": "^5.3.0",
-    "firebase-functions-test": "^3.1.0"
+    "typescript": "^5.7.0",
+    "firebase-functions-test": "^3.4.0"
   }
 }
 ```
