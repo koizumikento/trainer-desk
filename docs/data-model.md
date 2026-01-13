@@ -22,6 +22,8 @@ firestore/
 │   └── {measurementId}/
 ├── trainerTraineeLinks/          # トレーナー・トレーニー紐付け
 │   └── {linkId}/
+├── tickets/                      # 回数券
+│   └── {ticketId}/
 ├── invitations/                  # 招待コード
 │   └── {invitationId}/
 ├── reservations/                 # 予約
@@ -375,7 +377,115 @@ interface TrainerTraineeLink {
 
 ---
 
-### 3.6 invitations（招待）
+### 3.6 tickets（回数券）
+
+トレーナーがクライアントに発行する回数券。予約完了時に自動消化。
+
+<details>
+<summary>TypeScript型定義</summary>
+
+```typescript
+interface Ticket {
+  // ドキュメントID: 自動生成
+  id: string;
+
+  // 関係者
+  trainerId: string;
+  traineeId: string;
+
+  // 回数券情報
+  totalCount: number;           // 購入枚数
+  usedCount: number;            // 使用済み枚数
+  pricePerSession: number;      // 1回あたり単価（円）
+  totalPrice: number;           // 総額（円）
+
+  // ステータス
+  status: 'active' | 'exhausted' | 'expired';
+
+  // 有効期限（任意）
+  expiresAt: Timestamp | null;
+
+  // メモ
+  note: string;
+
+  // タイムスタンプ
+  purchasedAt: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+</details>
+
+<details>
+<summary>Dart型定義（freezed）</summary>
+
+```dart
+// lib/domain/entities/ticket.dart
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+part 'ticket.freezed.dart';
+part 'ticket.g.dart';
+
+enum TicketStatus {
+  @JsonValue('active')
+  active,
+  @JsonValue('exhausted')
+  exhausted,
+  @JsonValue('expired')
+  expired,
+}
+
+@freezed
+class Ticket with _$Ticket {
+  const Ticket._();
+
+  const factory Ticket({
+    required String id,
+    required String trainerId,
+    required String traineeId,
+    required int totalCount,
+    @Default(0) int usedCount,
+    required int pricePerSession,
+    required int totalPrice,
+    @Default(TicketStatus.active) TicketStatus status,
+    @TimestampNullableConverter() DateTime? expiresAt,
+    @Default('') String note,
+    @TimestampConverter() required DateTime purchasedAt,
+    @TimestampConverter() required DateTime createdAt,
+    @TimestampConverter() required DateTime updatedAt,
+  }) = _Ticket;
+
+  factory Ticket.fromJson(Map<String, dynamic> json) =>
+      _$TicketFromJson(json);
+
+  factory Ticket.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Ticket.fromJson({...data, 'id': doc.id});
+  }
+
+  // 残り回数
+  int get remainingCount => totalCount - usedCount;
+
+  // 使い切ったか
+  bool get isExhausted => remainingCount <= 0;
+
+  // 有効期限切れか
+  bool get isExpired => expiresAt != null && DateTime.now().isAfter(expiresAt!);
+
+  // 使用可能か
+  bool get isUsable => status == TicketStatus.active && !isExhausted && !isExpired;
+}
+```
+</details>
+
+**インデックス:**
+- `trainerId` + `traineeId` + `status`
+- `traineeId` + `status`
+
+---
+
+### 3.7 invitations（招待）
 
 ```typescript
 interface Invitation {
@@ -401,7 +511,7 @@ interface Invitation {
 
 ---
 
-### 3.7 trainerSchedules（トレーナースケジュール）
+### 3.8 trainerSchedules（トレーナースケジュール）
 
 ```typescript
 interface TrainerSchedule {
@@ -438,7 +548,7 @@ type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 's
 
 ---
 
-### 3.8 exerciseMaster（エクササイズマスター）
+### 3.9 exerciseMaster（エクササイズマスター）
 
 アプリに組み込みのエクササイズ・マシンのマスターデータ。読み取り専用。
 
@@ -556,12 +666,14 @@ interface ExerciseMaster {
 
 ---
 
-### 3.9 reservations（予約）
+### 3.10 reservations（予約）
 
 <details>
 <summary>TypeScript型定義</summary>
 
 ```typescript
+type PaymentType = 'ticket' | 'cash' | 'pending';
+
 interface Reservation {
   // ドキュメントID: 自動生成
   trainerId: string;
@@ -576,6 +688,12 @@ interface Reservation {
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   cancelledBy: 'trainer' | 'trainee' | null;
   cancellationReason: string | null;
+
+  // 支払い情報（completedの場合のみ有効）
+  paymentType: PaymentType;             // ticket: 回数券消化 / cash: 現金等 / pending: 未払い
+  ticketId: string | null;              // 使用した回数券ID（二重消化防止）
+  paymentMethod: string | null;         // 現金/振込/PayPay等のメモ（任意）
+  paidAt: Timestamp | null;             // 支払い確認日時
 
   // メモ
   trainerNote: string;
@@ -620,8 +738,19 @@ enum CancelledBy {
   trainee,
 }
 
+enum PaymentType {
+  @JsonValue('ticket')
+  ticket,      // 回数券消化
+  @JsonValue('cash')
+  cash,        // 現金等で支払い済み
+  @JsonValue('pending')
+  pending,     // 未払い
+}
+
 @freezed
 class Reservation with _$Reservation {
+  const Reservation._();
+
   const factory Reservation({
     required String id,
     required String trainerId,
@@ -632,6 +761,11 @@ class Reservation with _$Reservation {
     required ReservationStatus status,
     CancelledBy? cancelledBy,
     String? cancellationReason,
+    // 支払い情報
+    @Default(PaymentType.pending) PaymentType paymentType,
+    String? ticketId,                    // 使用した回数券ID
+    String? paymentMethod,               // 現金/振込/PayPay等
+    @TimestampNullableConverter() DateTime? paidAt,
     @Default('') String trainerNote,
     @Default('') String traineeNote,
     @TimestampConverter() required DateTime createdAt,
@@ -640,6 +774,12 @@ class Reservation with _$Reservation {
     @TimestampNullableConverter() DateTime? cancelledAt,
     @TimestampNullableConverter() DateTime? completedAt,
   }) = _Reservation;
+
+  // 支払い済みか
+  bool get isPaid => paymentType != PaymentType.pending;
+
+  // 未払いか
+  bool get isUnpaid => status == ReservationStatus.completed && paymentType == PaymentType.pending;
 
   factory Reservation.fromJson(Map<String, dynamic> json) =>
       _$ReservationFromJson(json);
@@ -672,7 +812,7 @@ class TimestampNullableConverter
 
 ---
 
-### 3.10 trainingMenus（トレーニングメニュー）
+### 3.11 trainingMenus（トレーニングメニュー）
 
 ```typescript
 interface TrainingMenu {
@@ -707,7 +847,7 @@ interface TrainingMenu {
 
 ---
 
-### 3.11 trainingSessions（トレーニングセッション）
+### 3.12 trainingSessions（トレーニングセッション）
 
 ```typescript
 interface TrainingSession {
@@ -754,7 +894,7 @@ interface TrainingSession {
 
 ---
 
-### 3.12 meals（食事記録）
+### 3.13 meals（食事記録）
 
 <details>
 <summary>TypeScript型定義</summary>
@@ -873,7 +1013,7 @@ class Meal with _$Meal {
 
 ---
 
-### 3.13 mealFeedbacks（食事フィードバック）
+### 3.14 mealFeedbacks（食事フィードバック）
 
 ```typescript
 interface MealFeedback {
@@ -898,7 +1038,7 @@ interface MealFeedback {
 
 ---
 
-### 3.14 chatRooms（チャットルーム）
+### 3.15 chatRooms（チャットルーム）
 
 ```typescript
 interface ChatRoom {
@@ -955,7 +1095,7 @@ interface Message {
 
 ---
 
-### 3.15 notifications（通知）
+### 3.16 notifications（通知）
 
 ```typescript
 interface Notification {
@@ -1120,6 +1260,18 @@ service cloud.firestore {
                       resource.data.traineeId == request.auth.uid;
     }
 
+    // tickets（回数券）
+    match /tickets/{ticketId} {
+      allow read: if isAuthenticated() &&
+                    (resource.data.trainerId == request.auth.uid ||
+                     resource.data.traineeId == request.auth.uid);
+      allow create: if isTrainer() &&
+                      request.resource.data.trainerId == request.auth.uid;
+      allow update: if isTrainer() &&
+                      resource.data.trainerId == request.auth.uid;
+      allow delete: if false; // 削除不可（履歴保持）
+    }
+
     // invitations
     match /invitations/{invitationId} {
       allow read: if isAuthenticated();
@@ -1272,6 +1424,23 @@ Firestore で必要な複合インデックス:
       ]
     },
     {
+      "collectionGroup": "tickets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "trainerId", "order": "ASCENDING" },
+        { "fieldPath": "traineeId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tickets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "traineeId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "reservations",
       "queryScope": "COLLECTION",
       "fields": [
@@ -1294,6 +1463,15 @@ Firestore で必要な複合インデックス:
         { "fieldPath": "trainerId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "scheduledAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reservations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "trainerId", "order": "ASCENDING" },
+        { "fieldPath": "paymentType", "order": "ASCENDING" },
+        { "fieldPath": "scheduledAt", "order": "DESCENDING" }
       ]
     },
     {

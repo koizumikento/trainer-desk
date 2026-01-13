@@ -71,6 +71,23 @@ entity "trainerTraineeLinks" as links {
   unlinkedAt : timestamp?
 }
 
+entity "tickets" as tickets {
+  * id : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  traineeId : string <<FK>>
+  totalCount : number
+  usedCount : number
+  pricePerSession : number
+  totalPrice : number
+  status : enum
+  expiresAt : timestamp?
+  note : string
+  purchasedAt : timestamp
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
 entity "invitations" as invitations {
   * code : string <<PK>>
   --
@@ -104,6 +121,10 @@ entity "reservations" as reservations {
   status : enum
   cancelledBy : enum?
   cancellationReason : string?
+  paymentType : enum
+  ticketId : string? <<FK>>
+  paymentMethod : string?
+  paidAt : timestamp?
   trainerNote : string
   traineeNote : string
   createdAt : timestamp
@@ -229,6 +250,10 @@ users ||--o| schedules : "has"
 
 users ||--o{ links : "trainer"
 users ||--o{ links : "trainee"
+
+users ||--o{ tickets : "trainer"
+users ||--o{ tickets : "trainee"
+tickets ||--o{ reservations : "used_in"
 
 users ||--o{ invitations : "creates"
 users ||--o{ invitations : "uses"
