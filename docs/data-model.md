@@ -1,6 +1,239 @@
 # データモデル仕様書 - TrainerDesk
 
-## 1. Firestore コレクション構造
+## 1. ER図（Entity Relationship Diagram）
+
+```plantuml
+@startuml er-diagram
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam linetype ortho
+
+title TrainerDesk ER図
+
+entity "users" as users {
+  * id : string <<PK>>
+  --
+  email : string
+  displayName : string
+  photoURL : string?
+  userType : enum
+  isActive : boolean
+  createdAt : timestamp
+  updatedAt : timestamp
+  lastLoginAt : timestamp
+}
+
+entity "trainerProfiles" as trainer_profiles {
+  * id : string <<PK>> <<FK>>
+  --
+  bio : string
+  specialties : string[]
+  certifications : string[]
+  experienceYears : number
+  pricing : json[]
+  contactInfo : json
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "traineeProfiles" as trainee_profiles {
+  * id : string <<PK>> <<FK>>
+  --
+  height : number?
+  weight : number?
+  birthDate : timestamp?
+  goals : string[]
+  medicalHistory : string
+  notes : string
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "trainerTraineeLinks" as links {
+  * id : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  traineeId : string <<FK>>
+  status : enum
+  linkedAt : timestamp
+  unlinkedAt : timestamp?
+}
+
+entity "invitations" as invitations {
+  * code : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  trainerName : string
+  status : enum
+  usedBy : string? <<FK>>
+  expiresAt : timestamp
+  createdAt : timestamp
+  usedAt : timestamp?
+}
+
+entity "trainerSchedules" as schedules {
+  * trainerId : string <<PK>> <<FK>>
+  --
+  weeklySchedule : json
+  holidays : json[]
+  sessionDuration : number
+  bufferTime : number
+  updatedAt : timestamp
+}
+
+entity "reservations" as reservations {
+  * id : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  traineeId : string <<FK>>
+  scheduledAt : timestamp
+  duration : number
+  location : string
+  status : enum
+  cancelledBy : enum?
+  cancellationReason : string?
+  trainerNote : string
+  traineeNote : string
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "trainingMenus" as menus {
+  * id : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  name : string
+  description : string
+  targetMuscles : string[]
+  difficulty : enum
+  exercises : json[]
+  isTemplate : boolean
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "trainingSessions" as sessions {
+  * id : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  traineeId : string <<FK>>
+  reservationId : string? <<FK>>
+  sessionDate : timestamp
+  duration : number
+  exercises : json[]
+  trainerNotes : string
+  traineeNotes : string
+  measurements : json?
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "meals" as meals {
+  * id : string <<PK>>
+  --
+  traineeId : string <<FK>>
+  trainerId : string? <<FK>>
+  mealType : enum
+  mealDate : timestamp
+  description : string
+  images : json[]
+  nutrition : json?
+  hasFeedback : boolean
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "mealFeedbacks" as feedbacks {
+  * id : string <<PK>>
+  --
+  mealId : string <<FK>>
+  trainerId : string <<FK>>
+  traineeId : string <<FK>>
+  rating : number
+  comment : string
+  suggestions : string
+  isRead : boolean
+  createdAt : timestamp
+  readAt : timestamp?
+}
+
+entity "chatRooms" as chat_rooms {
+  * id : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  traineeId : string <<FK>>
+  participants : string[]
+  lastMessage : json?
+  unreadCount : json
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "messages" as messages {
+  * id : string <<PK>>
+  --
+  chatRoomId : string <<FK>>
+  senderId : string <<FK>>
+  text : string
+  image : json?
+  readBy : string[]
+  createdAt : timestamp
+}
+
+entity "notifications" as notifications {
+  * id : string <<PK>>
+  --
+  userId : string <<FK>>
+  type : enum
+  title : string
+  body : string
+  targetType : enum
+  targetId : string
+  isRead : boolean
+  createdAt : timestamp
+  readAt : timestamp?
+}
+
+' Relationships
+users ||--o| trainer_profiles : "has"
+users ||--o| trainee_profiles : "has"
+users ||--o| schedules : "has"
+
+users ||--o{ links : "trainer"
+users ||--o{ links : "trainee"
+
+users ||--o{ invitations : "creates"
+users ||--o{ invitations : "uses"
+
+users ||--o{ reservations : "trainer"
+users ||--o{ reservations : "trainee"
+
+users ||--o{ menus : "creates"
+
+users ||--o{ sessions : "trainer"
+users ||--o{ sessions : "trainee"
+reservations ||--o| sessions : "linked"
+
+users ||--o{ meals : "trainee"
+users ||--o{ meals : "trainer"
+
+meals ||--o{ feedbacks : "has"
+users ||--o{ feedbacks : "trainer"
+users ||--o{ feedbacks : "trainee"
+
+users ||--o{ chat_rooms : "trainer"
+users ||--o{ chat_rooms : "trainee"
+chat_rooms ||--o{ messages : "contains"
+users ||--o{ messages : "sends"
+
+users ||--o{ notifications : "receives"
+
+@enduml
+```
+
+---
+
+## 2. Firestore コレクション構造
 
 ```
 firestore/
@@ -38,11 +271,14 @@ firestore/
 
 ---
 
-## 2. コレクション詳細
+## 3. コレクション詳細
 
-### 2.1 users（ユーザー）
+### 3.1 users（ユーザー）
 
 基本的なユーザー情報を格納。認証後に作成される。
+
+<details>
+<summary>TypeScript型定義</summary>
 
 ```typescript
 interface User {
@@ -66,8 +302,67 @@ interface User {
   lastLoginAt: Timestamp;
 }
 ```
+</details>
+
+<details>
+<summary>Dart型定義（freezed）</summary>
+
+```dart
+// lib/domain/entities/user.dart
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+part 'user.freezed.dart';
+part 'user.g.dart';
+
+enum UserType {
+  @JsonValue('trainer')
+  trainer,
+  @JsonValue('trainee')
+  trainee,
+}
+
+@freezed
+class AppUser with _$AppUser {
+  const factory AppUser({
+    required String id,
+    required String email,
+    required String displayName,
+    String? photoURL,
+    required UserType userType,
+    @Default(true) bool isActive,
+    @TimestampConverter() required DateTime createdAt,
+    @TimestampConverter() required DateTime updatedAt,
+    @TimestampConverter() required DateTime lastLoginAt,
+  }) = _AppUser;
+
+  factory AppUser.fromJson(Map<String, dynamic> json) =>
+      _$AppUserFromJson(json);
+
+  factory AppUser.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return AppUser.fromJson({...data, 'id': doc.id});
+  }
+}
+
+// Timestamp変換用コンバーター
+class TimestampConverter implements JsonConverter<DateTime, Timestamp> {
+  const TimestampConverter();
+
+  @override
+  DateTime fromJson(Timestamp timestamp) => timestamp.toDate();
+
+  @override
+  Timestamp toJson(DateTime date) => Timestamp.fromDate(date);
+}
+```
+</details>
 
 **サブコレクション: fcmTokens**
+
+<details>
+<summary>TypeScript型定義</summary>
+
 ```typescript
 interface FcmToken {
   // ドキュメントID: 自動生成
@@ -77,10 +372,38 @@ interface FcmToken {
   updatedAt: Timestamp;
 }
 ```
+</details>
+
+<details>
+<summary>Dart型定義（freezed）</summary>
+
+```dart
+// lib/domain/entities/fcm_token.dart
+@freezed
+class FcmToken with _$FcmToken {
+  const factory FcmToken({
+    required String token,
+    required DeviceType deviceType,
+    @TimestampConverter() required DateTime createdAt,
+    @TimestampConverter() required DateTime updatedAt,
+  }) = _FcmToken;
+
+  factory FcmToken.fromJson(Map<String, dynamic> json) =>
+      _$FcmTokenFromJson(json);
+}
+
+enum DeviceType {
+  @JsonValue('ios')
+  ios,
+  @JsonValue('android')
+  android,
+}
+```
+</details>
 
 ---
 
-### 2.2 trainerProfiles（トレーナープロフィール）
+### 3.2 trainerProfiles（トレーナープロフィール）
 
 ```typescript
 interface TrainerProfile {
@@ -115,7 +438,7 @@ interface TrainerProfile {
 
 ---
 
-### 2.3 traineeProfiles（トレーニープロフィール）
+### 3.3 traineeProfiles（トレーニープロフィール）
 
 ```typescript
 interface TraineeProfile {
@@ -140,7 +463,7 @@ interface TraineeProfile {
 
 ---
 
-### 2.4 trainerTraineeLinks（トレーナー・トレーニー紐付け）
+### 3.4 trainerTraineeLinks（トレーナー・トレーニー紐付け）
 
 ```typescript
 interface TrainerTraineeLink {
@@ -163,7 +486,7 @@ interface TrainerTraineeLink {
 
 ---
 
-### 2.5 invitations（招待）
+### 3.5 invitations（招待）
 
 ```typescript
 interface Invitation {
@@ -189,7 +512,7 @@ interface Invitation {
 
 ---
 
-### 2.6 trainerSchedules（トレーナースケジュール）
+### 3.6 trainerSchedules（トレーナースケジュール）
 
 ```typescript
 interface TrainerSchedule {
@@ -226,7 +549,10 @@ type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 's
 
 ---
 
-### 2.7 reservations（予約）
+### 3.7 reservations（予約）
+
+<details>
+<summary>TypeScript型定義</summary>
 
 ```typescript
 interface Reservation {
@@ -256,6 +582,81 @@ interface Reservation {
   completedAt: Timestamp | null;
 }
 ```
+</details>
+
+<details>
+<summary>Dart型定義（freezed）</summary>
+
+```dart
+// lib/domain/entities/reservation.dart
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+part 'reservation.freezed.dart';
+part 'reservation.g.dart';
+
+enum ReservationStatus {
+  @JsonValue('pending')
+  pending,
+  @JsonValue('confirmed')
+  confirmed,
+  @JsonValue('cancelled')
+  cancelled,
+  @JsonValue('completed')
+  completed,
+}
+
+enum CancelledBy {
+  @JsonValue('trainer')
+  trainer,
+  @JsonValue('trainee')
+  trainee,
+}
+
+@freezed
+class Reservation with _$Reservation {
+  const factory Reservation({
+    required String id,
+    required String trainerId,
+    required String traineeId,
+    @TimestampConverter() required DateTime scheduledAt,
+    required int duration,
+    required String location,
+    required ReservationStatus status,
+    CancelledBy? cancelledBy,
+    String? cancellationReason,
+    @Default('') String trainerNote,
+    @Default('') String traineeNote,
+    @TimestampConverter() required DateTime createdAt,
+    @TimestampConverter() required DateTime updatedAt,
+    @TimestampNullableConverter() DateTime? confirmedAt,
+    @TimestampNullableConverter() DateTime? cancelledAt,
+    @TimestampNullableConverter() DateTime? completedAt,
+  }) = _Reservation;
+
+  factory Reservation.fromJson(Map<String, dynamic> json) =>
+      _$ReservationFromJson(json);
+
+  factory Reservation.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Reservation.fromJson({...data, 'id': doc.id});
+  }
+}
+
+// Nullable Timestamp変換用コンバーター
+class TimestampNullableConverter
+    implements JsonConverter<DateTime?, Timestamp?> {
+  const TimestampNullableConverter();
+
+  @override
+  DateTime? fromJson(Timestamp? timestamp) => timestamp?.toDate();
+
+  @override
+  Timestamp? toJson(DateTime? date) =>
+      date != null ? Timestamp.fromDate(date) : null;
+}
+```
+</details>
 
 **インデックス:**
 - `trainerId` + `scheduledAt`
@@ -264,7 +665,7 @@ interface Reservation {
 
 ---
 
-### 2.8 trainingMenus（トレーニングメニュー）
+### 3.8 trainingMenus（トレーニングメニュー）
 
 ```typescript
 interface TrainingMenu {
@@ -299,7 +700,7 @@ interface TrainingMenu {
 
 ---
 
-### 2.9 trainingSessions（トレーニングセッション）
+### 3.9 trainingSessions（トレーニングセッション）
 
 ```typescript
 interface TrainingSession {
@@ -346,7 +747,10 @@ interface TrainingSession {
 
 ---
 
-### 2.10 meals（食事記録）
+### 3.10 meals（食事記録）
+
+<details>
+<summary>TypeScript型定義</summary>
 
 ```typescript
 interface Meal {
@@ -381,6 +785,79 @@ interface Meal {
   updatedAt: Timestamp;
 }
 ```
+</details>
+
+<details>
+<summary>Dart型定義（freezed）</summary>
+
+```dart
+// lib/domain/entities/meal.dart
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+part 'meal.freezed.dart';
+part 'meal.g.dart';
+
+enum MealType {
+  @JsonValue('breakfast')
+  breakfast,
+  @JsonValue('lunch')
+  lunch,
+  @JsonValue('dinner')
+  dinner,
+  @JsonValue('snack')
+  snack,
+}
+
+@freezed
+class MealImage with _$MealImage {
+  const factory MealImage({
+    required String url,
+    required String path,
+  }) = _MealImage;
+
+  factory MealImage.fromJson(Map<String, dynamic> json) =>
+      _$MealImageFromJson(json);
+}
+
+@freezed
+class Nutrition with _$Nutrition {
+  const factory Nutrition({
+    int? calories,
+    double? protein,
+    double? carbs,
+    double? fat,
+  }) = _Nutrition;
+
+  factory Nutrition.fromJson(Map<String, dynamic> json) =>
+      _$NutritionFromJson(json);
+}
+
+@freezed
+class Meal with _$Meal {
+  const factory Meal({
+    required String id,
+    required String traineeId,
+    String? trainerId,
+    required MealType mealType,
+    @TimestampConverter() required DateTime mealDate,
+    required String description,
+    @Default([]) List<MealImage> images,
+    Nutrition? nutrition,
+    @Default(false) bool hasFeedback,
+    @TimestampConverter() required DateTime createdAt,
+    @TimestampConverter() required DateTime updatedAt,
+  }) = _Meal;
+
+  factory Meal.fromJson(Map<String, dynamic> json) => _$MealFromJson(json);
+
+  factory Meal.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Meal.fromJson({...data, 'id': doc.id});
+  }
+}
+```
+</details>
 
 **インデックス:**
 - `traineeId` + `mealDate`
@@ -389,7 +866,7 @@ interface Meal {
 
 ---
 
-### 2.11 mealFeedbacks（食事フィードバック）
+### 3.11 mealFeedbacks（食事フィードバック）
 
 ```typescript
 interface MealFeedback {
@@ -414,7 +891,7 @@ interface MealFeedback {
 
 ---
 
-### 2.12 chatRooms（チャットルーム）
+### 3.12 chatRooms（チャットルーム）
 
 ```typescript
 interface ChatRoom {
@@ -471,7 +948,7 @@ interface Message {
 
 ---
 
-### 2.13 notifications（通知）
+### 3.13 notifications（通知）
 
 ```typescript
 interface Notification {
@@ -503,7 +980,7 @@ interface Notification {
 
 ---
 
-## 3. Cloud Storage 構造
+## 4. Cloud Storage 構造
 
 ```
 storage/
@@ -520,7 +997,7 @@ storage/
             └── {imageId}.jpg           # チャット画像
 ```
 
-### 3.1 ファイル命名規則
+### 4.1 ファイル命名規則
 
 | 種別 | パス | 命名規則 |
 |------|------|----------|
@@ -528,7 +1005,7 @@ storage/
 | 食事画像 | `/meals/{mealId}/` | `{uuid}.jpg` |
 | チャット画像 | `/chat/{roomId}/{messageId}/` | `{uuid}.jpg` |
 
-### 3.2 画像サイズ制限
+### 4.2 画像サイズ制限
 
 | 種別 | 最大サイズ | リサイズ |
 |------|-----------|----------|
@@ -538,9 +1015,9 @@ storage/
 
 ---
 
-## 4. セキュリティルール
+## 5. セキュリティルール
 
-### 4.1 Firestore Rules
+### 5.1 Firestore Rules
 
 ```javascript
 rules_version = '2';
@@ -701,7 +1178,7 @@ service cloud.firestore {
 }
 ```
 
-### 4.2 Storage Rules
+### 5.2 Storage Rules
 
 ```javascript
 rules_version = '2';
@@ -744,7 +1221,7 @@ service firebase.storage {
 
 ---
 
-## 5. インデックス設定
+## 6. インデックス設定
 
 Firestore で必要な複合インデックス:
 
@@ -814,9 +1291,9 @@ Firestore で必要な複合インデックス:
 
 ---
 
-## 6. データマイグレーション戦略
+## 7. データマイグレーション戦略
 
-### 6.1 バージョニング
+### 7.1 バージョニング
 
 各ドキュメントに `schemaVersion` フィールドを追加し、スキーマ変更時に対応。
 
@@ -827,7 +1304,7 @@ interface VersionedDocument {
 }
 ```
 
-### 6.2 マイグレーション手順
+### 7.2 マイグレーション手順
 
 1. 新しいスキーマ定義を作成
 2. Cloud Functions でマイグレーションスクリプト作成
