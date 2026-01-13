@@ -26,6 +26,8 @@ firestore/
 │   └── {reservationId}/
 ├── trainerSchedules/             # トレーナースケジュール設定
 │   └── {trainerId}/
+├── exerciseMaster/               # エクササイズマスターデータ（読み取り専用）
+│   └── {exerciseId}/
 ├── trainingMenus/                # トレーニングメニューテンプレート
 │   └── {menuId}/
 ├── trainingSessions/             # トレーニングセッション記録
@@ -333,7 +335,54 @@ type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 's
 
 ---
 
-### 3.7 reservations（予約）
+### 3.7 exerciseMaster（エクササイズマスター）
+
+アプリに組み込みのエクササイズ・マシンのマスターデータ。読み取り専用。
+
+```typescript
+type ExerciseCategory = 'chest' | 'back' | 'legs' | 'arms' | 'shoulders' | 'core' | 'cardio' | 'other';
+type ExerciseType = 'machine' | 'free_weight' | 'bodyweight' | 'cable' | 'cardio';
+
+interface ExerciseMaster {
+  // ドキュメントID: 自動生成
+  id: string;
+
+  // 基本情報
+  name: string;                           // 例: "チェストプレス"
+  nameEn: string;                         // 例: "Chest Press"
+  description: string;                    // 説明文
+
+  // 分類
+  category: ExerciseCategory;             // 部位カテゴリ
+  type: ExerciseType;                     // 種別
+  targetMuscles: string[];                // 対象筋肉群
+
+  // 表示設定
+  iconUrl: string | null;                 // アイコン画像
+  sortOrder: number;                      // 表示順
+
+  // メタ情報
+  isPopular: boolean;                     // よく使われるか（優先表示用）
+  gymBrands: string[];                    // 対応ジム（例: ["chocoZAP", "ANYTIME"]）
+}
+```
+
+**プリセットデータ例:**
+
+| name | category | type | gymBrands |
+|------|----------|------|-----------|
+| チェストプレス | chest | machine | chocoZAP, ANYTIME |
+| ラットプルダウン | back | machine | chocoZAP, ANYTIME |
+| レッグプレス | legs | machine | chocoZAP, ANYTIME |
+| ショルダープレス | shoulders | machine | chocoZAP |
+| アブドミナル | core | machine | chocoZAP |
+| ベンチプレス | chest | free_weight | ANYTIME |
+| スクワット | legs | free_weight | - |
+| プッシュアップ | chest | bodyweight | - |
+
+---
+
+### 3.8 reservations（予約）
 
 <details>
 <summary>TypeScript型定義</summary>
@@ -449,7 +498,7 @@ class TimestampNullableConverter
 
 ---
 
-### 3.8 trainingMenus（トレーニングメニュー）
+### 3.9 trainingMenus（トレーニングメニュー）
 
 ```typescript
 interface TrainingMenu {
@@ -484,7 +533,7 @@ interface TrainingMenu {
 
 ---
 
-### 3.9 trainingSessions（トレーニングセッション）
+### 3.10 trainingSessions（トレーニングセッション）
 
 ```typescript
 interface TrainingSession {
@@ -531,7 +580,7 @@ interface TrainingSession {
 
 ---
 
-### 3.10 meals（食事記録）
+### 3.11 meals（食事記録）
 
 <details>
 <summary>TypeScript型定義</summary>
@@ -650,7 +699,7 @@ class Meal with _$Meal {
 
 ---
 
-### 3.11 mealFeedbacks（食事フィードバック）
+### 3.12 mealFeedbacks（食事フィードバック）
 
 ```typescript
 interface MealFeedback {
@@ -675,7 +724,7 @@ interface MealFeedback {
 
 ---
 
-### 3.12 chatRooms（チャットルーム）
+### 3.13 chatRooms（チャットルーム）
 
 ```typescript
 interface ChatRoom {
@@ -732,7 +781,7 @@ interface Message {
 
 ---
 
-### 3.13 notifications（通知）
+### 3.14 notifications（通知）
 
 ```typescript
 interface Notification {
@@ -899,6 +948,12 @@ service cloud.firestore {
     match /trainerSchedules/{trainerId} {
       allow read: if isAuthenticated();
       allow write: if isOwner(trainerId) && isTrainer();
+    }
+
+    // exerciseMaster（読み取り専用マスターデータ）
+    match /exerciseMaster/{exerciseId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // 管理者のみFirebaseコンソールから更新
     }
 
     // reservations

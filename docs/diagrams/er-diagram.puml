@@ -94,6 +94,21 @@ entity "reservations" as reservations {
   updatedAt : timestamp
 }
 
+entity "exerciseMaster" as exercise_master {
+  * id : string <<PK>>
+  --
+  name : string
+  nameEn : string
+  description : string
+  category : enum
+  type : enum
+  targetMuscles : string[]
+  iconUrl : string?
+  sortOrder : number
+  isPopular : boolean
+  gymBrands : string[]
+}
+
 entity "trainingMenus" as menus {
   * id : string <<PK>>
   --
