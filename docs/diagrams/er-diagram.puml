@@ -1,0 +1,285 @@
+@startuml er-diagram
+!theme plain
+skinparam backgroundColor #FEFEFE
+skinparam linetype ortho
+
+title TrainerDesk ER図
+
+entity "users" as users {
+  * id : string <<PK>>
+  --
+  email : string
+  displayName : string
+  photoURL : string?
+  roles : string[]
+  activeRole : enum
+  isActive : boolean
+  createdAt : timestamp
+  updatedAt : timestamp
+  lastLoginAt : timestamp
+}
+
+entity "trainerProfiles" as trainer_profiles {
+  * id : string <<PK>> <<FK>>
+  --
+  bio : string
+  specialties : string[]
+  certifications : string[]
+  experienceYears : number
+  pricing : json[]
+  contactInfo : json
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "traineeProfiles" as trainee_profiles {
+  * id : string <<PK>> <<FK>>
+  --
+  height : number?
+  weight : number?
+  birthDate : timestamp?
+  goals : string[]
+  medicalHistory : string
+  notes : string
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "bodyMeasurements" as body_measurements {
+  * id : string <<PK>>
+  --
+  userId : string <<FK>>
+  weight : number?
+  height : number?
+  bodyFatPercentage : number?
+  muscleMass : number?
+  bmi : number?
+  measuredAt : timestamp
+  source : enum
+  note : string
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "trainerTraineeLinks" as links {
+  * id : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  traineeId : string <<FK>>
+  status : enum
+  linkedAt : timestamp
+  unlinkedAt : timestamp?
+}
+
+entity "tickets" as tickets {
+  * id : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  traineeId : string <<FK>>
+  totalCount : number
+  usedCount : number
+  pricePerSession : number
+  totalPrice : number
+  status : enum
+  expiresAt : timestamp?
+  note : string
+  purchasedAt : timestamp
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "invitations" as invitations {
+  * code : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  trainerName : string
+  status : enum
+  usedBy : string? <<FK>>
+  expiresAt : timestamp
+  createdAt : timestamp
+  usedAt : timestamp?
+}
+
+entity "trainerSchedules" as schedules {
+  * trainerId : string <<PK>> <<FK>>
+  --
+  weeklySchedule : json
+  holidays : json[]
+  sessionDuration : number
+  bufferTime : number
+  updatedAt : timestamp
+}
+
+entity "reservations" as reservations {
+  * id : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  traineeId : string <<FK>>
+  scheduledAt : timestamp
+  duration : number
+  location : string
+  status : enum
+  cancelledBy : enum?
+  cancellationReason : string?
+  paymentType : enum
+  ticketId : string? <<FK>>
+  paymentMethod : string?
+  paidAt : timestamp?
+  trainerNote : string
+  traineeNote : string
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "exerciseMaster" as exercise_master {
+  * id : string <<PK>>
+  --
+  name : string
+  nameEn : string
+  description : string
+  category : enum
+  type : enum
+  targetMuscles : string[]
+  iconUrl : string?
+  sortOrder : number
+  isPopular : boolean
+  gymBrands : string[]
+}
+
+entity "trainingMenus" as menus {
+  * id : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  name : string
+  description : string
+  targetMuscles : string[]
+  difficulty : enum
+  exercises : json[]
+  isTemplate : boolean
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "trainingSessions" as sessions {
+  * id : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  traineeId : string <<FK>>
+  reservationId : string? <<FK>>
+  sessionDate : timestamp
+  duration : number
+  exercises : json[]
+  trainerNotes : string
+  traineeNotes : string
+  measurements : json?
+  sessionCondition : json?
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "meals" as meals {
+  * id : string <<PK>>
+  --
+  traineeId : string <<FK>>
+  trainerId : string? <<FK>>
+  mealType : enum
+  mealDate : timestamp
+  description : string
+  images : json[]
+  nutrition : json?
+  hasFeedback : boolean
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "mealFeedbacks" as feedbacks {
+  * id : string <<PK>>
+  --
+  mealId : string <<FK>>
+  trainerId : string <<FK>>
+  traineeId : string <<FK>>
+  rating : number
+  comment : string
+  suggestions : string
+  isRead : boolean
+  createdAt : timestamp
+  readAt : timestamp?
+}
+
+entity "chatRooms" as chat_rooms {
+  * id : string <<PK>>
+  --
+  trainerId : string <<FK>>
+  traineeId : string <<FK>>
+  participants : string[]
+  lastMessage : json?
+  unreadCount : json
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "messages" as messages {
+  * id : string <<PK>>
+  --
+  chatRoomId : string <<FK>>
+  senderId : string <<FK>>
+  text : string
+  image : json?
+  readBy : string[]
+  createdAt : timestamp
+}
+
+entity "notifications" as notifications {
+  * id : string <<PK>>
+  --
+  userId : string <<FK>>
+  type : enum
+  title : string
+  body : string
+  targetType : enum
+  targetId : string
+  isRead : boolean
+  createdAt : timestamp
+  readAt : timestamp?
+}
+
+' Relationships
+users ||--o| trainer_profiles : "has"
+users ||--o| trainee_profiles : "has"
+users ||--o{ body_measurements : "records"
+users ||--o| schedules : "has"
+
+users ||--o{ links : "trainer"
+users ||--o{ links : "trainee"
+
+users ||--o{ tickets : "trainer"
+users ||--o{ tickets : "trainee"
+tickets ||--o{ reservations : "used_in"
+
+users ||--o{ invitations : "creates"
+users ||--o{ invitations : "uses"
+
+users ||--o{ reservations : "trainer"
+users ||--o{ reservations : "trainee"
+
+users ||--o{ menus : "creates"
+
+users ||--o{ sessions : "trainer"
+users ||--o{ sessions : "trainee"
+reservations ||--o| sessions : "linked"
+
+users ||--o{ meals : "trainee"
+users ||--o{ meals : "trainer"
+
+meals ||--o{ feedbacks : "has"
+users ||--o{ feedbacks : "trainer"
+users ||--o{ feedbacks : "trainee"
+
+users ||--o{ chat_rooms : "trainer"
+users ||--o{ chat_rooms : "trainee"
+chat_rooms ||--o{ messages : "contains"
+users ||--o{ messages : "sends"
+
+users ||--o{ notifications : "receives"
+
+@enduml

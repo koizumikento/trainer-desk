@@ -1,0 +1,38 @@
+@startuml clean-architecture
+!theme plain
+skinparam backgroundColor #FEFEFE
+
+title Clean Architecture - 依存関係
+
+rectangle "Presentation Layer" as presentation #LightBlue {
+  rectangle "Screens (Widgets)" as screens
+  rectangle "Providers (Riverpod)" as providers
+}
+
+rectangle "Domain Layer" as domain #LightGreen {
+  rectangle "Entities" as entities
+  rectangle "Repository Interfaces" as interfaces
+  rectangle "Use Cases" as usecases
+}
+
+rectangle "Data Layer" as data #LightYellow {
+  rectangle "Repository Implementations" as repos
+  rectangle "Data Models" as models
+  rectangle "Data Sources" as sources
+}
+
+rectangle "External" as external #LightGray {
+  rectangle "Firebase SDK" as firebase
+  rectangle "Local Storage" as local
+}
+
+presentation -down-> domain : depends on
+data -up-> domain : depends on
+data -down-> external : uses
+
+note right of domain
+  ドメイン層は他の層に
+  依存しない（最内層）
+end note
+
+@enduml
